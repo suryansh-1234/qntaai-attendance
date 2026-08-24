@@ -3,3 +3,7 @@
 __pycache__/
 .venv/
 venv/
+
+attendance.db
+generate_keys.py
+setup_passkeys.py
