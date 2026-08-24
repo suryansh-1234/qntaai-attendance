@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>QntaAI Attendance</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}?v=11"
+    >
+
+</head>
+
+
+<body>
+
+<header class="header">
+
+    <div>
+
+        <div class="brand">
+            QntaAI
+        </div>
+
+        <h1>Attendance</h1>
+
+        <p>
+            Team attendance management
+        </p>
+
+    </div>
+
+</header>
+
+
+<main>
+
+
+<!-- LOGIN -->
+
+<section
+    id="login-panel"
+    class="attendance-panel"
+>
+
+    <h2>
+        QntaAI Attendance
+    </h2>
+
+    <p>
+        Sign in using your personal passkey.
+    </p>
+
+
+    <form
+        id="login-form"
+        autocomplete="off"
+    >
+
+        <label for="login-passkey">
+            Passkey
+        </label>
+
+
+        <div class="passkey-row">
+
+            <input
+                id="login-passkey"
+                type="password"
+                placeholder="Enter your passkey"
+                autocomplete="current-password"
+                required
+            >
+
+
+            <button type="submit">
+                Sign in
+            </button>
+
+        </div>
+
+
+        <div
+            id="login-message"
+            class="message"
+        ></div>
+
+    </form>
+
+</section>
+
+
+<!-- DASHBOARD -->
+
+<section
+    id="dashboard"
+    style="display:none"
+>
+
+
+    <section class="user-panel">
+
+        <div>
+
+            <span class="muted">
+                Signed in as
+            </span>
+
+            <h2 id="user-name">
+                —
+            </h2>
+
+            <p id="user-role">
+                —
+            </p>
+
+        </div>
+
+
+        <button
+            id="logout"
+            class="secondary-button"
+        >
+            Sign out
+        </button>
+
+    </section>
+
+
+    <section class="summary">
+
+        <div class="summary-card">
+
+            <span
+                id="present-count"
+                class="summary-number"
+            >
+                0
+            </span>
+
+            <span class="summary-label">
+                Present
+            </span>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <span
+                id="late-count"
+                class="summary-number"
+            >
+                0
+            </span>
+
+            <span class="summary-label">
+                Late
+            </span>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <span
+                id="absent-count"
+                class="summary-number"
+            >
+                0
+            </span>
+
+            <span class="summary-label">
+                Absent
+            </span>
+
+        </div>
+
+    </section>
+
+
+    <section class="attendance-panel">
+
+        <div class="panel-header">
+
+            <h2>
+                Today's attendance
+            </h2>
+
+            <p>
+                Attendance can only be recorded once per day.
+            </p>
+
+        </div>
+
+
+        <button
+            id="mark-attendance"
+            class="primary-button"
+        >
+            Mark Attendance
+        </button>
+
+
+        <div
+            id="attendance-message"
+            class="message"
+        ></div>
+
+    </section>
+
+
+    <section class="team-section">
+
+        <div class="section-heading">
+
+            <div>
+
+                <h2>
+                    Team
+                </h2>
+
+                <p id="team-count">
+                    0 members
+                </p>
+
+            </div>
+
+
+            <div class="date-controls">
+
+                <span id="date-display">
+                    —
+                </span>
+
+                <input
+                    type="date"
+                    id="attendance-date"
+                >
+
+            </div>
+
+        </div>
+
+
+        <div id="team">
+
+            <div class="loading">
+                Loading team...
+            </div>
+
+        </div>
+
+    </section>
+
+</section>
+
+
+</main>
+
+
+<footer>
+    QntaAI Attendance System
+</footer>
+
+
+<script
+    src="{{ url_for('static', filename='script.js') }}?v=11"
+></script>
+
+</body>
+
+</html>
