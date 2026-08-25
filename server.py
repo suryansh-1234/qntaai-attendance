@@ -142,7 +142,13 @@ def init_db():
 
         if not passkey_hash:
             print(
-                f"⚠️ Warning: No passkey hash configured for {name}"
+                f"⚠️ WARNING: No passkey hash configured for {name}"
+            )
+        else:
+            print(
+                f"🔐 Hash loaded for {name}: "
+                f"length={len(passkey_hash)}, "
+                f"prefix={passkey_hash[:12]}"
             )
 
         conn.execute(
