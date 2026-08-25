@@ -705,30 +705,17 @@ def mark_attendance():
 # START LOCAL SERVER
 # ============================================================
 
-if __name__ == "__main__":
-
-    app.run(
-
-        host="0.0.0.0",
-
-        port=5000,
-
-        debug=False
-
-    )
-
 # ============================================================
-# INITIALIZE DATABASE
+# DATABASE INITIALIZATION
 # ============================================================
-# IMPORTANT:
-# Gunicorn imports server.py instead of executing it directly.
-# Therefore the database must be initialized here.
+# Gunicorn imports this module instead of running it as __main__.
+# Therefore the database must be initialized during import.
 
 init_db()
 
 
 # ============================================================
-# START LOCAL SERVER
+# LOCAL DEVELOPMENT SERVER
 # ============================================================
 
 if __name__ == "__main__":
