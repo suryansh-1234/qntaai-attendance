@@ -114,40 +114,55 @@ def init_db():
 
         (
             "Suryansh",
-            "CEO & Founder"
+            "CEO & Founder",
+            os.environ.get("SURYANSH_PASSKEY_HASH")
         ),
 
         (
             "Govind Trivedi",
-            "Co-founder / Debugger"
+            "Co-founder / Debugger",
+            os.environ.get("GOVIND_PASSKEY_HASH")
         ),
 
         (
             "Arnav Sharma",
-            "UI Designer"
+            "UI Designer",
+            os.environ.get("ARNAV_PASSKEY_HASH")
         ),
 
         (
             "Shourya Sharma",
-            "Advertiser"
+            "Advertiser",
+            os.environ.get("SHOURYA_PASSKEY_HASH")
         )
 
     ]
 
-    for name, role in team:
+    for name, role, passkey_hash in team:
+
+        if not passkey_hash:
+            print(
+                f"⚠️ Warning: No passkey hash configured for {name}"
+            )
 
         conn.execute(
             """
-            INSERT OR IGNORE INTO team_members
+            INSERT INTO team_members
             (
                 name,
-                role
+                role,
+                passkey_hash
             )
-            VALUES (?, ?)
+            VALUES (?, ?, ?)
+
+            ON CONFLICT(name) DO UPDATE SET
+                role = excluded.role,
+                passkey_hash = excluded.passkey_hash
             """,
             (
                 name,
-                role
+                role,
+                passkey_hash
             )
         )
 
