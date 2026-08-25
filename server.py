@@ -333,6 +333,12 @@ def login():
 
     for member in members:
 
+        print(
+            f"🔎 Login check: {member['name']} | "
+            f"hash_present={bool(member['passkey_hash'])} | "
+            f"hash_length={len(member['passkey_hash']) if member['passkey_hash'] else 0}"
+        )
+
         try:
 
             if check_password_hash(
