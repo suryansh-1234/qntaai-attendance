@@ -716,3 +716,25 @@ if __name__ == "__main__":
         debug=False
 
     )
+
+# ============================================================
+# INITIALIZE DATABASE
+# ============================================================
+# IMPORTANT:
+# Gunicorn imports server.py instead of executing it directly.
+# Therefore the database must be initialized here.
+
+init_db()
+
+
+# ============================================================
+# START LOCAL SERVER
+# ============================================================
+
+if __name__ == "__main__":
+
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=False
+    )
