@@ -24,9 +24,13 @@ if not SECRET_KEY:
 
 app.secret_key = SECRET_KEY
 
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
+
 DATABASE = os.environ.get(
     "DATABASE_PATH",
-    "attendance.db"
+    os.path.join(BASE_DIR, "attendance.db")
 )
 
 LATE_AFTER = "10:00"
@@ -60,6 +64,11 @@ def get_db():
 
 
 def init_db():
+
+    print("==========================================")
+    print("🔧 QntaAI Attendance Database Initialization")
+    print("📁 Database:", os.path.abspath(DATABASE))
+    print("==========================================")
 
     conn = get_db()
 
@@ -150,7 +159,6 @@ def init_db():
 # IMPORTANT:
 # Gunicorn imports "server:app".
 # Therefore this must run during module import.
-init_db()
 
 
 # ============================================================
@@ -711,13 +719,26 @@ def mark_attendance():
 # Gunicorn imports this module instead of running it as __main__.
 # Therefore the database must be initialized during import.
 
-init_db()
 
 
 # ============================================================
 # LOCAL DEVELOPMENT SERVER
 # ============================================================
 
+# ============================================================
+# DATABASE INITIALIZATION
+# ============================================================
+# Gunicorn imports server.py instead of running it as __main__.
+# Initialize SQLite when the application module is imported.
+
+
+
+# ============================================================
+# LOCAL DEVELOPMENT SERVER
+# ============================================================
+
+
+init_db()
 if __name__ == "__main__":
 
     app.run(
