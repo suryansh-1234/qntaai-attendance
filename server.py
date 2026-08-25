@@ -12,7 +12,7 @@ app = Flask(__name__)
 
 
 # ============================================================
-# CONFIG
+# CONFIGURATION
 # ============================================================
 
 SECRET_KEY = os.environ.get("QNTAAI_SECRET_KEY")
@@ -48,8 +48,14 @@ limiter = Limiter(
 # ============================================================
 
 def get_db():
-    conn = sqlite3.connect(DATABASE)
+
+    conn = sqlite3.connect(
+        DATABASE,
+        timeout=30
+    )
+
     conn.row_factory = sqlite3.Row
+
     return conn
 
 
@@ -57,35 +63,66 @@ def init_db():
 
     conn = get_db()
 
+    # Team members table
     conn.execute("""
         CREATE TABLE IF NOT EXISTS team_members (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+
             name TEXT NOT NULL UNIQUE,
+
             role TEXT NOT NULL,
+
             passkey_hash TEXT
+
         )
     """)
 
+    # Attendance table
     conn.execute("""
         CREATE TABLE IF NOT EXISTS attendance (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+
             member_id INTEGER NOT NULL,
+
             date TEXT NOT NULL,
+
             status TEXT NOT NULL,
+
             time TEXT NOT NULL,
 
             FOREIGN KEY (member_id)
                 REFERENCES team_members(id),
 
             UNIQUE(member_id, date)
+
         )
     """)
 
+    # QntaAI team
     team = [
-        ("Suryansh", "CEO & Founder"),
-        ("Govind Trivedi", "Co-founder / Debugger"),
-        ("Arnav Sharma", "UI Designer"),
-        ("Shourya Sharma", "Advertiser")
+
+        (
+            "Suryansh",
+            "CEO & Founder"
+        ),
+
+        (
+            "Govind Trivedi",
+            "Co-founder / Debugger"
+        ),
+
+        (
+            "Arnav Sharma",
+            "UI Designer"
+        ),
+
+        (
+            "Shourya Sharma",
+            "Advertiser"
+        )
+
     ]
 
     for name, role in team:
@@ -93,20 +130,26 @@ def init_db():
         conn.execute(
             """
             INSERT OR IGNORE INTO team_members
-            (name, role)
+            (
+                name,
+                role
+            )
             VALUES (?, ?)
             """,
-            (name, role)
+            (
+                name,
+                role
+            )
         )
 
     conn.commit()
+
     conn.close()
 
 
 # IMPORTANT:
-# Gunicorn imports this file instead of executing
-# the __main__ section. Therefore initialize the database
-# when the application is imported.
+# Gunicorn imports "server:app".
+# Therefore this must run during module import.
 init_db()
 
 
@@ -117,10 +160,21 @@ init_db()
 @app.after_request
 def security_headers(response):
 
-    response.headers["Cache-Control"] = "no-store"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers[
+        "Cache-Control"
+    ] = "no-store"
+
+    response.headers[
+        "X-Content-Type-Options"
+    ] = "nosniff"
+
+    response.headers[
+        "X-Frame-Options"
+    ] = "DENY"
+
+    response.headers[
+        "Referrer-Policy"
+    ] = "no-referrer"
 
     return response
 
@@ -131,7 +185,75 @@ def security_headers(response):
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+
+    return render_template(
+        "index.html"
+    )
+
+
+# ============================================================
+# HEALTH CHECK
+# ============================================================
+
+@app.get("/api/health")
+def health():
+
+    try:
+
+        conn = get_db()
+
+        tables = conn.execute(
+            """
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'table'
+            ORDER BY name
+            """
+        ).fetchall()
+
+        team_count = conn.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM team_members
+            """
+        ).fetchone()["count"]
+
+        attendance_count = conn.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM attendance
+            """
+        ).fetchone()["count"]
+
+        conn.close()
+
+        return jsonify({
+
+            "ok": True,
+
+            "database": DATABASE,
+
+            "tables": [
+                row["name"]
+                for row in tables
+            ],
+
+            "team_members": team_count,
+
+            "attendance_records":
+                attendance_count
+
+        })
+
+    except Exception as e:
+
+        return jsonify({
+
+            "ok": False,
+
+            "error": str(e)
+
+        }), 500
 
 
 # ============================================================
@@ -142,15 +264,23 @@ def home():
 @limiter.limit("5 per minute")
 def login():
 
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(
+        silent=True
+    ) or {}
 
-    passkey = data.get("passkey")
+    passkey = data.get(
+        "passkey"
+    )
 
     if not passkey:
 
         return jsonify({
+
             "success": False,
-            "error": "Passkey is required."
+
+            "error":
+                "Passkey is required."
+
         }), 400
 
     conn = get_db()
@@ -158,11 +288,14 @@ def login():
     members = conn.execute(
         """
         SELECT
+
             id,
             name,
             role,
             passkey_hash
+
         FROM team_members
+
         WHERE passkey_hash IS NOT NULL
         """
     ).fetchall()
@@ -177,10 +310,15 @@ def login():
                 member["passkey_hash"],
                 passkey
             ):
+
                 authenticated_member = member
+
                 break
 
         except Exception:
+
+            # Ignore malformed hash entries
+            # rather than crashing the entire login endpoint.
             continue
 
     conn.close()
@@ -188,18 +326,31 @@ def login():
     if authenticated_member is None:
 
         return jsonify({
+
             "success": False,
-            "error": "Invalid passkey."
+
+            "error":
+                "Invalid passkey."
+
         }), 401
 
+    # Prevent old session data from carrying over.
     session.clear()
 
-    session["member_id"] = authenticated_member["id"]
+    session["member_id"] = (
+        authenticated_member["id"]
+    )
 
     return jsonify({
+
         "success": True,
-        "name": authenticated_member["name"],
-        "role": authenticated_member["role"]
+
+        "name":
+            authenticated_member["name"],
+
+        "role":
+            authenticated_member["role"]
+
     })
 
 
@@ -210,12 +361,16 @@ def login():
 @app.get("/api/me")
 def current_user():
 
-    member_id = session.get("member_id")
+    member_id = session.get(
+        "member_id"
+    )
 
     if not member_id:
 
         return jsonify({
+
             "authenticated": False
+
         })
 
     conn = get_db()
@@ -223,10 +378,13 @@ def current_user():
     member = conn.execute(
         """
         SELECT
+
             id,
             name,
             role
+
         FROM team_members
+
         WHERE id = ?
         """,
         (member_id,)
@@ -239,14 +397,24 @@ def current_user():
         session.clear()
 
         return jsonify({
+
             "authenticated": False
+
         })
 
     return jsonify({
+
         "authenticated": True,
-        "id": member["id"],
-        "name": member["name"],
-        "role": member["role"]
+
+        "id":
+            member["id"],
+
+        "name":
+            member["name"],
+
+        "role":
+            member["role"]
+
     })
 
 
@@ -260,33 +428,45 @@ def logout():
     session.clear()
 
     return jsonify({
+
         "success": True
+
     })
 
 
 # ============================================================
-# TEAM / ATTENDANCE
+# TEAM ATTENDANCE
 # ============================================================
 
 @app.get("/api/team")
 def api_team():
 
-    requested_date = request.args.get("date")
+    requested_date = request.args.get(
+        "date"
+    )
 
     if requested_date:
 
         try:
-            date.fromisoformat(requested_date)
+
+            date.fromisoformat(
+                requested_date
+            )
 
         except ValueError:
 
             return jsonify({
-                "error": "Invalid date. Use YYYY-MM-DD."
+
+                "error":
+                    "Invalid date. Use YYYY-MM-DD."
+
             }), 400
 
     else:
 
-        requested_date = date.today().isoformat()
+        requested_date = (
+            date.today().isoformat()
+        )
 
     conn = get_db()
 
@@ -295,34 +475,57 @@ def api_team():
         SELECT
 
             team_members.id,
+
             team_members.name,
+
             team_members.role,
+
             attendance.status,
+
             attendance.time
 
         FROM team_members
 
         LEFT JOIN attendance
 
-            ON team_members.id = attendance.member_id
+            ON team_members.id =
+               attendance.member_id
+
             AND attendance.date = ?
 
         ORDER BY team_members.id
         """,
-        (requested_date,)
+        (
+            requested_date,
+        )
     ).fetchall()
 
     conn.close()
 
     return jsonify([
+
         {
-            "id": member["id"],
-            "name": member["name"],
-            "role": member["role"],
-            "status": member["status"] or "absent",
-            "time": member["time"]
+
+            "id":
+                member["id"],
+
+            "name":
+                member["name"],
+
+            "role":
+                member["role"],
+
+            "status":
+                member["status"]
+                or "absent",
+
+            "time":
+                member["time"]
+
         }
+
         for member in members
+
     ])
 
 
@@ -334,13 +537,19 @@ def api_team():
 @limiter.limit("10 per minute")
 def mark_attendance():
 
-    member_id = session.get("member_id")
+    member_id = session.get(
+        "member_id"
+    )
 
     if not member_id:
 
         return jsonify({
+
             "success": False,
-            "error": "You must sign in first."
+
+            "error":
+                "You must sign in first."
+
         }), 401
 
     conn = get_db()
@@ -348,41 +557,61 @@ def mark_attendance():
     member = conn.execute(
         """
         SELECT
+
             id,
             name,
             role
+
         FROM team_members
+
         WHERE id = ?
         """,
-        (member_id,)
+        (
+            member_id,
+        )
     ).fetchone()
 
     if member is None:
 
         conn.close()
+
         session.clear()
 
         return jsonify({
+
             "success": False,
-            "error": "Invalid session."
+
+            "error":
+                "Invalid session."
+
         }), 401
 
     now = datetime.now()
 
     today = now.date().isoformat()
 
-    current_time = now.strftime("%H:%M:%S")
+    current_time = now.strftime(
+        "%H:%M:%S"
+    )
 
+    # Check whether today's attendance already exists.
     existing = conn.execute(
         """
         SELECT
+
             status,
             time
+
         FROM attendance
+
         WHERE member_id = ?
+
         AND date = ?
         """,
-        (member_id, today)
+        (
+            member_id,
+            today
+        )
     ).fetchone()
 
     if existing:
@@ -390,15 +619,28 @@ def mark_attendance():
         conn.close()
 
         return jsonify({
+
             "success": False,
-            "error": "Attendance already marked for today.",
-            "status": existing["status"],
-            "time": existing["time"]
+
+            "error":
+                "Attendance already marked for today.",
+
+            "status":
+                existing["status"],
+
+            "time":
+                existing["time"]
+
         }), 409
 
+    # Before 10:00 = present.
+    # 10:00 or later = late.
     if now.strftime("%H:%M") < LATE_AFTER:
+
         status = "present"
+
     else:
+
         status = "late"
 
     try:
@@ -412,6 +654,7 @@ def mark_attendance():
                 status,
                 time
             )
+
             VALUES (?, ?, ?, ?)
             """,
             (
@@ -429,29 +672,47 @@ def mark_attendance():
         conn.close()
 
         return jsonify({
+
             "success": False,
-            "error": "Attendance already marked for today."
+
+            "error":
+                "Attendance already marked for today."
+
         }), 409
 
     conn.close()
 
     return jsonify({
+
         "success": True,
-        "name": member["name"],
-        "role": member["role"],
-        "status": status,
-        "time": current_time
+
+        "name":
+            member["name"],
+
+        "role":
+            member["role"],
+
+        "status":
+            status,
+
+        "time":
+            current_time
+
     })
 
 
 # ============================================================
-# LOCAL DEVELOPMENT
+# START LOCAL SERVER
 # ============================================================
 
 if __name__ == "__main__":
 
     app.run(
+
         host="0.0.0.0",
+
         port=5000,
+
         debug=False
+
     )
